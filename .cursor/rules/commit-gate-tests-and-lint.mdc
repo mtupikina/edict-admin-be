@@ -1,0 +1,25 @@
+---
+description: Code cannot be committed until lint passes, coverage ≥90%, and all tests pass
+globs: "**/*.ts"
+alwaysApply: false
+---
+
+# Commit Gate: Lint, Coverage, and Tests
+
+**Code cannot be committed unless all of the following rules are met:**
+
+1. **No linting errors**  
+   The code must not cause linting errors. Run `npm run lint` and fix any errors before committing.
+
+2. **Code coverage at least 90%**  
+   Run `npm run test:cov`. Statements, branches, functions, and lines must each be **at least 90%** for the application source (excluding `main.ts` and test files). Fix or add tests if coverage drops below 90%.
+
+3. **All tests must pass**  
+   Run `npm run test` (and `npm run test:e2e` for e2e when applicable). Every test suite must pass. Fix failing tests before committing.
+
+4. **All new code must be covered by tests**  
+   New or changed functionality must have corresponding tests (e.g. `.spec.ts` unit tests). Do not commit new code without test coverage.
+
+**Before every commit:** Run `npm run lint`, then `npm run test`, then `npm run test:cov` to confirm coverage ≥ 90%. Fix any failures or coverage gaps before committing.
+
+**CI:** The pipeline must run lint, tests, and coverage; the build must fail if lint fails, any test fails, or coverage is below 90%.

@@ -1,0 +1,13 @@
+---
+description: Keep test coverage at least 90%
+globs: "**/*.ts"
+alwaysApply: false
+---
+
+# Test Coverage (≥ 90%)
+
+- **Minimum coverage:** Statements, branches, functions, and lines must each be **at least 90%** for the application source (excluding `main.ts` and test files).
+- **Unit tests:** Every service, guard, controller, and strategy with business logic must have a `.spec.ts` that tests behavior. Mock Mongoose models and external deps where needed.
+- **All new code** must be covered by tests; **code cannot be committed** unless coverage stays ≥ 90% (see commit-gate-tests-and-lint).
+- **CI:** Run `npm run test:cov` and fail the build if coverage drops below 90%.
+- When adding or changing features, add or update specs so coverage stays ≥ 90%.

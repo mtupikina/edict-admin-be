@@ -1,0 +1,12 @@
+---
+description: Code must pass lint checks; no linting errors allowed
+globs: "**/*.ts"
+alwaysApply: false
+---
+
+# No Lint Errors
+
+- **Lint must pass:** All code must satisfy the project's ESLint rules. No lint errors or warnings are allowed.
+- **Before committing:** Run `npm run lint` and fix any reported issues. **Code cannot be committed** until lint is without errors (see commit-gate-tests-and-lint).
+- **CI:** Lint should be part of the CI pipeline; the build should fail if lint fails.
+- When adding or changing code, ensure new code follows existing lint rules (e.g. avoid `any`, remove unused imports). **Unused variables and parameters are not allowed;** prefix with `_` only when the parameter is required by a signature but intentionally unused (e.g. `_accessToken`).
