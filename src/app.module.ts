@@ -14,6 +14,7 @@ import { UsersModule } from './users/users.module';
       process.env.NODE_ENV !== 'production'
         ? process.env.MONGODB_URI_TEST || 'mongodb://localhost:27017/edict'
         : process.env.MONGODB_URI || 'mongodb://localhost:27017/edict',
+      { lazyConnection: true },
     ),
     AuthModule,
     UsersModule,
