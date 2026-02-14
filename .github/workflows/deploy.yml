@@ -1,0 +1,70 @@
+# Deploy backend on push to main: lint → test → build → sync secrets to Render → deploy
+name: Deploy backend
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm run test
+        env:
+          MONGODB_URI_TEST: ${{ secrets.MONGODB_URI_TEST }}
+          JWT_SECRET: test-secret-min-32-characters-long
+
+      - name: Build
+        run: npm run build
+
+      - name: Sync env vars to Render
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_CALLBACK_URL: ${{ secrets.GOOGLE_CALLBACK_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_EXPIRATION: ${{ secrets.JWT_EXPIRATION }}
+          PORT: ${{ secrets.PORT }}
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+        run: |
+          ENV_JSON=$(node -e "
+            const vars = [
+              { key: 'MONGODB_URI', value: process.env.MONGODB_URI },
+              { key: 'GOOGLE_CLIENT_ID', value: process.env.GOOGLE_CLIENT_ID },
+              { key: 'GOOGLE_CLIENT_SECRET', value: process.env.GOOGLE_CLIENT_SECRET },
+              { key: 'GOOGLE_CALLBACK_URL', value: process.env.GOOGLE_CALLBACK_URL },
+              { key: 'JWT_SECRET', value: process.env.JWT_SECRET },
+              { key: 'JWT_EXPIRATION', value: process.env.JWT_EXPIRATION || '6h' },
+              { key: 'PORT', value: process.env.PORT || '3000' },
+              { key: 'FRONTEND_URL', value: process.env.FRONTEND_URL },
+            ].filter(e => e.value !== undefined && e.value !== '');
+            console.log(JSON.stringify(vars));
+          ")
+          curl -sSf -X PUT \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            "https://api.render.com/v1/services/$RENDER_SERVICE_ID/env-vars" \
+            -d "$ENV_JSON"
+
+      - name: Trigger Render deploy
+        run: |
+          curl -sSf -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
