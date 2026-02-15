@@ -27,6 +27,11 @@ export class UsersService implements OnModuleInit {
     return !!user;
   }
 
+  async findOneByEmail(email: string): Promise<User | null> {
+    const user = await this.userModel.findOne({ email }).lean().exec();
+    return user as User | null;
+  }
+
   async seedDefaultUser(): Promise<void> {
     const defaultEmail = 'mmylymuk@gmail.com';
     const exists = await this.userModel.findOne({ email: defaultEmail }).exec();

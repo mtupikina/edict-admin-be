@@ -1,6 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Reflector } from '@nestjs/core';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
+import { PermissionsService } from '../permissions/permissions.service';
+import { RequirePermissionsGuard } from '../auth/guards/require-permissions.guard';
 import { UserRole } from './schemas/user.schema';
 
 describe('UsersController', () => {
@@ -20,14 +23,25 @@ describe('UsersController', () => {
     create: jest.fn().mockResolvedValue(mockUser),
     findAll: jest.fn().mockResolvedValue([mockUser]),
     findOne: jest.fn().mockResolvedValue(mockUser),
+    findOneByEmail: jest.fn().mockResolvedValue(mockUser),
     update: jest.fn().mockResolvedValue(mockUser),
     remove: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockPermissionsService = {
+    getPermissionsForRole: jest.fn().mockResolvedValue(['users:read', 'users:write']),
+    hasPermission: jest.fn().mockReturnValue(true),
   };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
-      providers: [{ provide: UsersService, useValue: mockUsersService }],
+      providers: [
+        { provide: UsersService, useValue: mockUsersService },
+        { provide: PermissionsService, useValue: mockPermissionsService },
+        Reflector,
+        RequirePermissionsGuard,
+      ],
     }).compile();
 
     controller = module.get<UsersController>(UsersController);

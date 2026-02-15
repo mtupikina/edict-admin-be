@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Request, Response } from 'express';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { UsersService } from '../users/users.service';
+import { PermissionsService } from '../permissions/permissions.service';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -11,10 +13,22 @@ describe('AuthController', () => {
     logout: jest.fn().mockResolvedValue(undefined),
   };
 
+  const mockUsersService = {
+    findOneByEmail: jest.fn().mockResolvedValue({ email: 'user@example.com', role: 'admin' }),
+  };
+
+  const mockPermissionsService = {
+    getPermissionsForRole: jest.fn().mockResolvedValue(['users:read', 'users:write']),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [{ provide: AuthService, useValue: mockAuthService }],
+      providers: [
+        { provide: AuthService, useValue: mockAuthService },
+        { provide: UsersService, useValue: mockUsersService },
+        { provide: PermissionsService, useValue: mockPermissionsService },
+      ],
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
@@ -55,10 +69,23 @@ describe('AuthController', () => {
   });
 
   describe('getProfile', () => {
-    it('should return user email', () => {
+    it('should return email, role and permissions', async () => {
       const user = { email: 'user@example.com', sub: 'sub-1' };
-      const result = controller.getProfile(user);
-      expect(result).toEqual({ email: 'user@example.com' });
+      const result = await controller.getProfile(user);
+      expect(mockUsersService.findOneByEmail).toHaveBeenCalledWith('user@example.com');
+      expect(mockPermissionsService.getPermissionsForRole).toHaveBeenCalledWith('admin');
+      expect(result).toEqual({
+        email: 'user@example.com',
+        role: 'admin',
+        permissions: ['users:read', 'users:write'],
+      });
+    });
+
+    it('should return email and empty role/permissions when user not found', async () => {
+      mockUsersService.findOneByEmail.mockResolvedValueOnce(null);
+      const user = { email: 'unknown@example.com', sub: 'sub-1' };
+      const result = await controller.getProfile(user);
+      expect(result).toEqual({ email: 'unknown@example.com', role: null, permissions: [] });
     });
   });
 });

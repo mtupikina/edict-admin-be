@@ -17,8 +17,8 @@ alwaysApply: false
 3. **All tests must pass**  
    Run `npm run test` (and `npm run test:e2e` for e2e when applicable). Every test suite must pass. Fix failing tests before committing.
 
-4. **All new code must be covered by tests**  
-   New or changed functionality must have corresponding tests (e.g. `.spec.ts` unit tests). Do not commit new code without test coverage.
+4. **Tests with every change; all new code covered**  
+   Add or update tests whenever you add or change application code. New or changed functionality must have corresponding tests (e.g. `.spec.ts` unit tests). Do not commit new code without test coverage. Coverage must never fall below 90%.
 
 **Before every commit:** Run `npm run lint`, then `npm run test`, then `npm run test:cov` to confirm coverage ≥ 90%. Fix any failures or coverage gaps before committing.
 

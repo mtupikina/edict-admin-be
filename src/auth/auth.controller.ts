@@ -6,11 +6,17 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { JwtPayload } from './auth.service';
 import { AuthExceptionFilter } from './filters/auth-exception.filter';
+import { UsersService } from '../users/users.service';
+import { PermissionsService } from '../permissions/permissions.service';
 
 @Controller('auth')
 @UseFilters(AuthExceptionFilter)
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly usersService: UsersService,
+    private readonly permissionsService: PermissionsService,
+  ) {}
 
   @Get('google')
   @UseGuards(AuthGuard('google'))
@@ -40,7 +46,17 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  getProfile(@CurrentUser() user: JwtPayload) {
-    return { email: user.email };
+  async getProfile(@CurrentUser() user: JwtPayload) {
+    const dbUser = await this.usersService.findOneByEmail(user.email);
+    if (!dbUser) {
+      return { email: user.email, role: null, permissions: [] };
+    }
+    const roleName = dbUser.role as string;
+    const permissions = await this.permissionsService.getPermissionsForRole(roleName);
+    return {
+      email: user.email,
+      role: roleName,
+      permissions,
+    };
   }
 }
