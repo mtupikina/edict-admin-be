@@ -1,13 +1,13 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 
 export type UserDocument = User & Document;
 
-export enum UserRole {
-  STUDENT = 'student',
-  TEACHER = 'teacher',
-  ADMIN = 'admin',
-  SUPER_ADMIN = 'super_admin',
+/** Role document as returned when roleIds are populated (from roles collection). */
+export interface PopulatedRole {
+  _id: Types.ObjectId;
+  name: string;
+  description?: string;
 }
 
 @Schema({ timestamps: true, collection: 'users' })
@@ -21,8 +21,12 @@ export class User {
   @Prop({ required: true, unique: true })
   email: string;
 
-  @Prop({ required: true, enum: UserRole })
-  role: UserRole;
+  @Prop({
+    type: [MongooseSchema.Types.ObjectId],
+    ref: 'Role',
+    required: true,
+  })
+  roleIds: Types.ObjectId[];
 
   @Prop({ default: Date.now })
   createdAt: Date;
@@ -30,6 +34,9 @@ export class User {
   @Prop({ default: Date.now })
   updatedAt: Date;
 }
+
+/** User with roleIds populated as full role objects (raw API response shape). */
+export type UserWithPopulatedRoleIds = Omit<User, 'roleIds'> & { roleIds: PopulatedRole[] };
 
 export const UserSchema = SchemaFactory.createForClass(User);
 

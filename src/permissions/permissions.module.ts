@@ -19,6 +19,10 @@ import { RequirePermissionsGuard } from '../auth/guards/require-permissions.guar
   ],
   controllers: [PermissionsController, RolesController],
   providers: [PermissionsService, RequirePermissionsGuard],
-  exports: [PermissionsService, RequirePermissionsGuard],
+  exports: [
+    PermissionsService,
+    RequirePermissionsGuard,
+    MongooseModule.forFeature([{ name: Role.name, schema: RoleSchema }]),
+  ],
 })
 export class PermissionsModule {}

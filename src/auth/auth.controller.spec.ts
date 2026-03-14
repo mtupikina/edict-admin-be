@@ -13,12 +13,13 @@ describe('AuthController', () => {
     logout: jest.fn().mockResolvedValue(undefined),
   };
 
+  const mockRole = { _id: 'role-1', name: 'admin' };
   const mockUsersService = {
-    findOneByEmail: jest.fn().mockResolvedValue({ email: 'user@example.com', role: 'admin' }),
+    findOneByEmail: jest.fn().mockResolvedValue({ email: 'user@example.com', roleIds: [mockRole] }),
   };
 
   const mockPermissionsService = {
-    getPermissionsForRole: jest.fn().mockResolvedValue(['users:read', 'users:write']),
+    getPermissionsForRoles: jest.fn().mockResolvedValue(['users:read', 'users:write']),
   };
 
   beforeEach(async () => {
@@ -69,23 +70,23 @@ describe('AuthController', () => {
   });
 
   describe('getProfile', () => {
-    it('should return email, role and permissions', async () => {
+    it('should return email, roleIds and permissions', async () => {
       const user = { email: 'user@example.com', sub: 'sub-1' };
       const result = await controller.getProfile(user);
       expect(mockUsersService.findOneByEmail).toHaveBeenCalledWith('user@example.com');
-      expect(mockPermissionsService.getPermissionsForRole).toHaveBeenCalledWith('admin');
+      expect(mockPermissionsService.getPermissionsForRoles).toHaveBeenCalledWith(['admin']);
       expect(result).toEqual({
         email: 'user@example.com',
-        role: 'admin',
+        roleIds: [mockRole],
         permissions: ['users:read', 'users:write'],
       });
     });
 
-    it('should return email and empty role/permissions when user not found', async () => {
+    it('should return email and empty roleIds/permissions when user not found', async () => {
       mockUsersService.findOneByEmail.mockResolvedValueOnce(null);
       const user = { email: 'unknown@example.com', sub: 'sub-1' };
       const result = await controller.getProfile(user);
-      expect(result).toEqual({ email: 'unknown@example.com', role: null, permissions: [] });
+      expect(result).toEqual({ email: 'unknown@example.com', roleIds: [], permissions: [] });
     });
   });
 });

@@ -49,13 +49,13 @@ export class AuthController {
   async getProfile(@CurrentUser() user: JwtPayload) {
     const dbUser = await this.usersService.findOneByEmail(user.email);
     if (!dbUser) {
-      return { email: user.email, role: null, permissions: [] };
+      return { email: user.email, roleIds: [], permissions: [] };
     }
-    const roleName = dbUser.role as string;
-    const permissions = await this.permissionsService.getPermissionsForRole(roleName);
+    const roleNames = dbUser.roleIds.map((r) => r.name);
+    const permissions = await this.permissionsService.getPermissionsForRoles(roleNames);
     return {
       email: user.email,
-      role: roleName,
+      roleIds: dbUser.roleIds,
       permissions,
     };
   }

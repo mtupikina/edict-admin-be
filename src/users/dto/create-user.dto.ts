@@ -1,12 +1,13 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
-import { UserRole } from '../schemas/user.schema';
-
-/** Roles that can be assigned via API (excludes SUPER_ADMIN) */
-export const ApiUserRole = {
-  [UserRole.STUDENT]: UserRole.STUDENT,
-  [UserRole.TEACHER]: UserRole.TEACHER,
-  [UserRole.ADMIN]: UserRole.ADMIN,
-} as const;
+import {
+  ArrayMinSize,
+  IsArray,
+  IsEmail,
+  IsMongoId,
+  IsNotEmpty,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class CreateUserDto {
   @IsString()
@@ -25,6 +26,8 @@ export class CreateUserDto {
   @IsNotEmpty()
   email: string;
 
-  @IsEnum(ApiUserRole)
-  role: UserRole;
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsMongoId({ each: true })
+  roleIds: string[];
 }

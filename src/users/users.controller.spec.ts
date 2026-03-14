@@ -4,7 +4,8 @@ import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RequirePermissionsGuard } from '../auth/guards/require-permissions.guard';
-import { UserRole } from './schemas/user.schema';
+
+const mockRole = { _id: '507f1f77bcf86cd799439012', name: 'student', description: '' };
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -14,7 +15,7 @@ describe('UsersController', () => {
     firstName: 'John',
     lastName: 'Doe',
     email: 'john@example.com',
-    role: 'student',
+    roleIds: [mockRole],
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -30,6 +31,7 @@ describe('UsersController', () => {
 
   const mockPermissionsService = {
     getPermissionsForRole: jest.fn().mockResolvedValue(['users:read', 'users:write']),
+    getPermissionsForRoles: jest.fn().mockResolvedValue(['users:read', 'users:write']),
     hasPermission: jest.fn().mockReturnValue(true),
   };
 
@@ -53,7 +55,7 @@ describe('UsersController', () => {
   });
 
   it('create should call service.create', async () => {
-    const dto = { firstName: 'J', lastName: 'D', email: 'j@d.com', role: UserRole.STUDENT };
+    const dto = { firstName: 'J', lastName: 'D', email: 'j@d.com', roleIds: [mockRole._id] };
     const result = await controller.create(dto);
     expect(mockUsersService.create).toHaveBeenCalledWith(dto);
     expect(result).toEqual(mockUser);

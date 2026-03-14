@@ -13,12 +13,16 @@ describe('RequirePermissionsGuard', () => {
   };
 
   const mockPermissionsService = {
-    getPermissionsForRole: jest.fn().mockResolvedValue(['a', 'b']),
+    getPermissionsForRoles: jest.fn().mockResolvedValue(['a', 'b']),
     hasPermission: jest.fn().mockReturnValue(true),
   };
 
+  const mockUserWithRoleIds = {
+    email: 'u@x.com',
+    roleIds: [{ _id: 'role-1', name: 'admin' }],
+  };
   const mockUsersService = {
-    findOneByEmail: jest.fn().mockResolvedValue({ email: 'u@x.com', role: 'admin' }),
+    findOneByEmail: jest.fn().mockResolvedValue(mockUserWithRoleIds),
   };
 
   function createMockContext(request: { user?: { email: string } }): ExecutionContext {
@@ -32,10 +36,7 @@ describe('RequirePermissionsGuard', () => {
   }
 
   beforeEach(async () => {
-    mockUsersService.findOneByEmail.mockResolvedValue({
-      email: 'u@x.com',
-      role: 'admin',
-    });
+    mockUsersService.findOneByEmail.mockResolvedValue(mockUserWithRoleIds);
     mockPermissionsService.hasPermission.mockReturnValue(true);
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -99,7 +100,7 @@ describe('RequirePermissionsGuard', () => {
     const ctx = createMockContext({ user: { email: 'u@x.com' } });
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
     await expect(guard.canActivate(ctx)).rejects.toThrow('Insufficient permissions');
-    expect(mockPermissionsService.getPermissionsForRole).toHaveBeenCalledWith('admin');
+    expect(mockPermissionsService.getPermissionsForRoles).toHaveBeenCalledWith(['admin']);
     expect(mockPermissionsService.hasPermission).toHaveBeenCalled();
   });
 
@@ -112,7 +113,7 @@ describe('RequirePermissionsGuard', () => {
     const result = await guard.canActivate(ctx);
     expect(result).toBe(true);
     expect(mockUsersService.findOneByEmail).toHaveBeenCalledWith('u@x.com');
-    expect(mockPermissionsService.getPermissionsForRole).toHaveBeenCalledWith('admin');
+    expect(mockPermissionsService.getPermissionsForRoles).toHaveBeenCalledWith(['admin']);
     expect(mockPermissionsService.hasPermission).toHaveBeenCalled();
   });
 });

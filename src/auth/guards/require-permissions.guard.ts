@@ -26,8 +26,8 @@ export class RequirePermissionsGuard implements CanActivate {
     if (!user) {
       throw new ForbiddenException('User not found');
     }
-    const roleName = user.role as string;
-    const permissions = await this.permissionsService.getPermissionsForRole(roleName);
+    const roleNames = (user as { roleIds: { name: string }[] }).roleIds.map((r) => r.name);
+    const permissions = await this.permissionsService.getPermissionsForRoles(roleNames);
     const hasAny = required.some((p) => this.permissionsService.hasPermission(permissions, p));
     if (!hasAny) {
       throw new ForbiddenException('Insufficient permissions');

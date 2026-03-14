@@ -68,6 +68,20 @@ export class PermissionsService implements OnModuleInit {
     return permissions;
   }
 
+  /** Returns merged permissions for all given roles (union, no duplicates). */
+  async getPermissionsForRoles(roleNames: string[]): Promise<string[]> {
+    if (!roleNames?.length) {
+      return [];
+    }
+    if (roleNames.includes(ROLES.SUPER_ADMIN)) {
+      const all = await this.permissionModel.find().distinct('name').exec();
+      return all;
+    }
+    const allPerms = await Promise.all(roleNames.map((name) => this.getPermissionsForRole(name)));
+    const merged = [...new Set(allPerms.flat())];
+    return merged;
+  }
+
   hasPermission(rolePermissions: string[], required: string): boolean {
     return rolePermissions.includes(required);
   }
