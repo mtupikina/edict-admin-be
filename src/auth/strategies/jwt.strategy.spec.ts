@@ -35,6 +35,24 @@ describe('JwtStrategy', () => {
     expect(strategy).toBeDefined();
   });
 
+  describe('constructor JWT secret default', () => {
+    it('should instantiate when JWT_SECRET is unset (development default)', async () => {
+      const configNoSecret = {
+        get: jest.fn((key: string) => (key === 'JWT_SECRET' ? undefined : undefined)),
+      };
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          JwtStrategy,
+          { provide: ConfigService, useValue: configNoSecret },
+          { provide: AuthService, useValue: mockAuthService },
+        ],
+      }).compile();
+      const s = module.get<JwtStrategy>(JwtStrategy);
+      expect(s).toBeDefined();
+      expect(configNoSecret.get).toHaveBeenCalledWith('JWT_SECRET');
+    });
+  });
+
   describe('validate', () => {
     it('should return payload when token is not blacklisted', async () => {
       const req = { headers: { authorization: 'Bearer token-123' } };

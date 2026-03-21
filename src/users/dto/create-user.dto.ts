@@ -4,6 +4,7 @@ import {
   IsEmail,
   IsMongoId,
   IsNotEmpty,
+  IsOptional,
   IsString,
   MaxLength,
   MinLength,
@@ -30,4 +31,9 @@ export class CreateUserDto {
   @ArrayMinSize(1)
   @IsMongoId({ each: true })
   roleIds: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsMongoId({ each: true })
+  tutorIds?: string[];
 }

@@ -12,7 +12,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User, UserDocument, UserWithPopulatedRoleIds } from './schemas/user.schema';
 import { Role, RoleDocument } from '../permissions/schemas/role.schema';
-import { ROLES } from '../permissions/constants/permissions.constants';
+import { ROLES, TUTOR_ELIGIBLE_ROLE_NAMES } from '../permissions/constants/permissions.constants';
 
 @Injectable()
 export class UsersService implements OnModuleInit {
@@ -59,13 +59,39 @@ export class UsersService implements OnModuleInit {
     }
   }
 
-  private async getSuperAdminRoleId(): Promise<Types.ObjectId | null> {
-    const role = await this.roleModel
-      .findOne({ name: ROLES.SUPER_ADMIN })
-      .select('_id')
+  private userMayBeTutorFromPopulatedRoles(roleIds: unknown): boolean {
+    if (!Array.isArray(roleIds)) {
+      return false;
+    }
+    return roleIds.some(
+      (r) =>
+        r != null &&
+        typeof r === 'object' &&
+        'name' in r &&
+        typeof (r as { name: unknown }).name === 'string' &&
+        TUTOR_ELIGIBLE_ROLE_NAMES.has((r as { name: string }).name),
+    );
+  }
+
+  private async validateTutorIds(tutorIds: string[]): Promise<Types.ObjectId[]> {
+    const unique = [...new Set(tutorIds)];
+    if (unique.length === 0) {
+      return [];
+    }
+    const objectIds = unique.map((id) => new Types.ObjectId(id));
+    const found = await this.userModel
+      .find({ _id: { $in: objectIds } })
+      .populate({ path: 'roleIds', select: 'name' })
       .lean()
       .exec();
-    return role?._id ?? null;
+    const eligibleIds = new Set(
+      found
+        .filter((doc) => this.userMayBeTutorFromPopulatedRoles(doc.roleIds))
+        .map((doc) => doc._id.toString()),
+    );
+    return unique
+      .filter((idStr) => eligibleIds.has(idStr))
+      .map((idStr) => new Types.ObjectId(idStr));
   }
 
   private async validateRoleIds(roleIds: string[]): Promise<Types.ObjectId[]> {
@@ -97,21 +123,24 @@ export class UsersService implements OnModuleInit {
     if (existing) {
       throw new ConflictException(`User with email ${createUserDto.email} already exists`);
     }
-    const created = await this.userModel.create({
+    const createPayload: Record<string, unknown> = {
       firstName: createUserDto.firstName,
       lastName: createUserDto.lastName,
       email: createUserDto.email,
       roleIds,
-    });
+    };
+    if (createUserDto.tutorIds != null) {
+      createPayload.tutorIds = await this.validateTutorIds(createUserDto.tutorIds);
+    }
+    const created = await this.userModel.create(createPayload);
     const populated = await this.userModel.findById(created._id).populate('roleIds').lean().exec();
     return populated as unknown as UserWithPopulatedRoleIds;
   }
 
   async findAll(): Promise<UserWithPopulatedRoleIds[]> {
-    const superAdminId = await this.getSuperAdminRoleId();
-    const query = superAdminId != null ? { roleIds: { $nin: [superAdminId] } } : {};
+    /** Include super_admin accounts so they can appear as tutor options and in tutor name resolution. */
     const users = await this.userModel
-      .find(query)
+      .find({})
       .sort({ createdAt: -1 })
       .populate('roleIds')
       .lean()
@@ -153,7 +182,10 @@ export class UsersService implements OnModuleInit {
     }
     const updatePayload: Record<string, unknown> = { ...updateUserDto };
     if (updateUserDto.roleIds != null) {
-      updatePayload.roleIds = updateUserDto.roleIds.map((id) => new Types.ObjectId(id));
+      updatePayload.roleIds = updateUserDto.roleIds.map((rid) => new Types.ObjectId(rid));
+    }
+    if (updateUserDto.tutorIds != null) {
+      updatePayload.tutorIds = await this.validateTutorIds(updateUserDto.tutorIds);
     }
     const user = await this.userModel
       .findByIdAndUpdate(id, updatePayload, { new: true })

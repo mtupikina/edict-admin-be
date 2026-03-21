@@ -19,7 +19,14 @@ export type PermissionName = (typeof Permissions)[keyof typeof Permissions];
 
 export const ROLES = {
   STUDENT: 'student',
-  TEACHER: 'teacher',
+  TUTOR: 'tutor',
   ADMIN: 'admin',
   SUPER_ADMIN: 'super_admin',
 } as const;
+
+/** Role names for users who may appear as another user's tutor (excludes student-only). */
+export const TUTOR_ELIGIBLE_ROLE_NAMES: ReadonlySet<string> = new Set([
+  ROLES.TUTOR,
+  ROLES.ADMIN,
+  ROLES.SUPER_ADMIN,
+]);

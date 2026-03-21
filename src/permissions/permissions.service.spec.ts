@@ -149,6 +149,46 @@ describe('PermissionsService', () => {
     });
   });
 
+  describe('getPermissionsForRoles', () => {
+    it('should return [] when roleNames is empty or missing', async () => {
+      await expect(service.getPermissionsForRoles([])).resolves.toEqual([]);
+      await expect(
+        service.getPermissionsForRoles(undefined as unknown as string[]),
+      ).resolves.toEqual([]);
+    });
+
+    it('should return all distinct permissions when SUPER_ADMIN is included', async () => {
+      const result = await service.getPermissionsForRoles([ROLES.ADMIN, ROLES.SUPER_ADMIN]);
+      expect(mockPermissionModel.find).toHaveBeenCalled();
+      expect(result).toEqual([mockPermission.name]);
+    });
+
+    it('should merge permissions from multiple roles (union)', async () => {
+      service.invalidateCache();
+      const roleA = { _id: new Types.ObjectId(), name: 'merge-a' };
+      const roleB = { _id: new Types.ObjectId(), name: 'merge-b' };
+      mockRoleModel.findOne.mockImplementation((query: { name?: string }) => {
+        if (query?.name === 'merge-a') return queryLike(roleA);
+        if (query?.name === 'merge-b') return queryLike(roleB);
+        return queryLikeNull();
+      });
+      mockRolePermissionModel.find.mockImplementation((filter: { roleId: Types.ObjectId }) => {
+        const id = filter.roleId.toString();
+        if (id === roleA._id.toString()) {
+          return {
+            populate: jest.fn().mockReturnValue(leanChain([{ permissionId: { name: 'perm-a' } }])),
+          };
+        }
+        return {
+          populate: jest.fn().mockReturnValue(leanChain([{ permissionId: { name: 'perm-b' } }])),
+        };
+      });
+      const result = await service.getPermissionsForRoles(['merge-a', 'merge-b']);
+      expect(result).toEqual(expect.arrayContaining(['perm-a', 'perm-b']));
+      expect(result).toHaveLength(2);
+    });
+  });
+
   describe('hasPermission', () => {
     it('should return true when permission in list', () => {
       expect(service.hasPermission(['a', 'b'], 'b')).toBe(true);
@@ -329,6 +369,14 @@ describe('PermissionsService', () => {
         NotFoundException,
       );
     });
+
+    it('should throw NotFoundException when findByIdAndUpdate returns null', async () => {
+      mockRoleModel.findById.mockImplementationOnce(() => leanChain(mockRole));
+      mockRoleModel.findByIdAndUpdate.mockImplementationOnce(() => leanChain(null));
+      await expect(
+        service.updateRole(mockRole._id.toString(), { description: 'x' }),
+      ).rejects.toThrow(NotFoundException);
+    });
   });
 
   describe('removeRole', () => {
@@ -410,6 +458,27 @@ describe('PermissionsService', () => {
       await expect(service.setRolePermissions('nonexistent', [])).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('seedRolesAndPermissions', () => {
+    it('should skip assign when role snapshot has no matching roles', async () => {
+      mockPermissionModel.findOneAndUpdate.mockResolvedValue(undefined);
+      mockRoleModel.findOneAndUpdate.mockResolvedValue(undefined);
+      mockRoleModel.find.mockReturnValue(leanChain([]));
+      mockPermissionModel.find.mockReturnValue(leanChain([]));
+      await service.seedRolesAndPermissions();
+      expect(mockRolePermissionModel.findOneAndUpdate).not.toHaveBeenCalled();
+    });
+
+    it('should skip permission links when permission map is empty', async () => {
+      const adminOnly = [{ _id: new Types.ObjectId(), name: ROLES.ADMIN }];
+      mockPermissionModel.findOneAndUpdate.mockResolvedValue(undefined);
+      mockRoleModel.findOneAndUpdate.mockResolvedValue(undefined);
+      mockRoleModel.find.mockReturnValue(leanChain(adminOnly));
+      mockPermissionModel.find.mockReturnValue(leanChain([]));
+      await service.seedRolesAndPermissions();
+      expect(mockRolePermissionModel.findOneAndUpdate).not.toHaveBeenCalled();
     });
   });
 });

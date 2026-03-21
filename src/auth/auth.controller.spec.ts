@@ -40,6 +40,12 @@ describe('AuthController', () => {
     expect(controller).toBeDefined();
   });
 
+  describe('googleAuth', () => {
+    it('should run without error (OAuth entrypoint)', async () => {
+      await expect(controller.googleAuth()).resolves.toBeUndefined();
+    });
+  });
+
   describe('googleAuthCallback', () => {
     it('should redirect with token', async () => {
       const req = { user: { email: 'a@b.com', googleId: 'g-1' } };

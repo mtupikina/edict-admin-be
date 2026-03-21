@@ -113,19 +113,19 @@ export class PermissionsService implements OnModuleInit {
     const permissionByName = new Map(permissions.map((p) => [p.name, p]));
 
     const studentRole = roleByName.get(ROLES.STUDENT);
-    const teacherRole = roleByName.get(ROLES.TEACHER);
+    const tutorRole = roleByName.get(ROLES.TUTOR);
     const adminRole = roleByName.get(ROLES.ADMIN);
     const superAdminRole = roleByName.get(ROLES.SUPER_ADMIN);
 
     const studentPerms = [Permissions.WORDS_READ];
-    const teacherPerms = [
+    const tutorPerms = [
       Permissions.WORDS_READ,
       Permissions.WORDS_WRITE,
       Permissions.TESTS_READ,
       Permissions.TESTS_WRITE,
     ];
     const adminPerms = [
-      ...teacherPerms,
+      ...tutorPerms,
       Permissions.USERS_READ,
       Permissions.USERS_WRITE,
       Permissions.ROLES_READ,
@@ -149,7 +149,7 @@ export class PermissionsService implements OnModuleInit {
     };
 
     await assign(studentRole, studentPerms);
-    await assign(teacherRole, teacherPerms);
+    await assign(tutorRole, tutorPerms);
     await assign(adminRole, adminPerms);
     await assign(superAdminRole, allPerms);
 

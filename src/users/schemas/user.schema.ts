@@ -28,6 +28,12 @@ export class User {
   })
   roleIds: Types.ObjectId[];
 
+  @Prop({
+    type: [MongooseSchema.Types.ObjectId],
+    ref: 'User',
+  })
+  tutorIds?: Types.ObjectId[];
+
   @Prop({ default: Date.now })
   createdAt: Date;
 
@@ -40,7 +46,13 @@ export type UserWithPopulatedRoleIds = Omit<User, 'roleIds'> & { roleIds: Popula
 
 export const UserSchema = SchemaFactory.createForClass(User);
 
-UserSchema.pre('save', function (next) {
+/** Mongoose pre-save: bump `updatedAt` (extracted for unit tests). */
+export function applyUpdatedAtBeforeSave(
+  this: { updatedAt?: Date },
+  next: (err?: Error) => void,
+): void {
   this.updatedAt = new Date();
   next();
-});
+}
+
+UserSchema.pre('save', applyUpdatedAtBeforeSave);

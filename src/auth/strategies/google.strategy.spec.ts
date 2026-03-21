@@ -36,6 +36,29 @@ describe('GoogleStrategy', () => {
     expect(strategy).toBeDefined();
   });
 
+  describe('constructor callback URL default', () => {
+    it('should use localhost default when GOOGLE_CALLBACK_URL is unset', async () => {
+      const configWithoutCallback = {
+        get: jest.fn((key: string) => {
+          if (key === 'GOOGLE_CLIENT_ID') return 'client-id';
+          if (key === 'GOOGLE_CLIENT_SECRET') return 'secret';
+          if (key === 'GOOGLE_CALLBACK_URL') return undefined;
+          return undefined;
+        }),
+      };
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          GoogleStrategy,
+          { provide: ConfigService, useValue: configWithoutCallback },
+          { provide: AuthService, useValue: mockAuthService },
+        ],
+      }).compile();
+      const s = module.get<GoogleStrategy>(GoogleStrategy);
+      expect(s).toBeDefined();
+      expect(configWithoutCallback.get).toHaveBeenCalledWith('GOOGLE_CALLBACK_URL');
+    });
+  });
+
   describe('validate', () => {
     it('should call done with user when allowed', async () => {
       const done = jest.fn();
